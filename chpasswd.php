@@ -73,7 +73,8 @@ function is_admin($user) {
     mysql_query("SELECT * FROM usergroup " .
                 "LEFT JOIN (groups, users) ON " .
                 "(usergroup.gid=groups.gid AND usergroup.uid=users.uid) " .
-                "WHERE groups.name='admin' AND users.login='" . $user . "'") or
+                "WHERE groups.name='admin' AND users.login='" .
+                mysql_real_escape_string($user) . "'") or
     die('Query failed: ' . mysql_error());
 
   return mysql_num_rows($result) > 0;
@@ -167,8 +168,9 @@ if (strlen($cmd)) {
   case 'add':
     $login = get_user();
     $pass = get_password();
-    mysql_query("INSERT INTO users (login, pass) VALUES ('" . $login .
-                "', '" . $pass . "')") or
+    mysql_query("INSERT INTO users (login, pass) VALUES ('" .
+                mysql_real_escape_string($login) . "', '" .
+                mysql_real_escape_string($pass) . "')") or
       die('Error creating user: ' . mysql_error());
 
     show_status('Added User');
@@ -177,10 +179,12 @@ if (strlen($cmd)) {
   case 'del':
     $uid = $_REQUEST['uid'];
 
-    mysql_query("DELETE FROM usergroup WHERE uid='" . $uid . "'") or
+    mysql_query("DELETE FROM usergroup WHERE uid='" .
+                mysql_real_escape_string($uid) . "'") or
       die('Error deleting group associations: ' . mysql_error());
 
-    mysql_query("DELETE FROM users WHERE uid='" . $uid . "'") or
+    mysql_query("DELETE FROM users WHERE uid='" .
+                mysql_real_escape_string($uid) . "'") or
       die('Error deleting user: ' . mysql_error());
 
     show_status('Deleted User ' . $uid);
@@ -189,8 +193,8 @@ if (strlen($cmd)) {
   case 'set':
     $login = get_user();
     $pass = get_password();
-    mysql_query("UPDATE users SET pass='" . $pass . "' WHERE login='" .
-                $login . "'") or
+    mysql_query("UPDATE users SET pass='" . mysql_real_escape_string($pass) .
+                "' WHERE login='" . mysql_real_escape_string($login) . "'") or
       die('Error updating password: ' . mysql_error());
     
     show_status('Password Updated');
@@ -198,7 +202,8 @@ if (strlen($cmd)) {
     
   case 'addgrp':
     $group = $_REQUEST['group'];
-    mysql_query("INSERT INTO groups (name) VALUES ('" . $group . "')") or
+    mysql_query("INSERT INTO groups (name) VALUES ('" .
+                mysql_real_escape_string($group) . "')") or
       die('Error creating group: ' . mysql_error());
     
     show_status('Added Group ' . $group);
@@ -207,10 +212,12 @@ if (strlen($cmd)) {
   case 'delgrp':
     $gid = $_REQUEST['gid'];
 
-    mysql_query("DELETE FROM usergroup WHERE gid='" . $gid . "'") or
+    mysql_query("DELETE FROM usergroup WHERE gid='" .
+                mysql_real_escape_string($gid) . "'") or
       die('Error deleting group associations: ' . mysql_error());
 
-    mysql_query("DELETE FROM groups WHERE gid='" . $gid . "'") or
+    mysql_query("DELETE FROM groups WHERE gid='" .
+                mysql_real_escape_string($gid) . "'") or
       die('Error deleting group: ' . mysql_error());
 
     show_status('Deleted Group ' . $gid);
@@ -220,7 +227,8 @@ if (strlen($cmd)) {
     $gid = $_REQUEST['gid'];
     $uid = $_REQUEST['uid'];
     mysql_query("INSERT INTO usergroup (uid, gid) VALUES " .
-                "('" . $uid . "', '" . $gid . "')") or
+                "('" . mysql_real_escape_string($uid) . "', '" .
+                mysql_real_escape_string($gid) . "')") or
       die('Error adding user to group: ' . mysql_error());
 
     show_status('Added user ' . $uid . " to group " . $gid);
@@ -230,8 +238,9 @@ if (strlen($cmd)) {
     $gid = $_REQUEST['gid'];
     $uid = $_REQUEST['uid'];
 
-    mysql_query("DELETE FROM usergroup WHERE gid='" . $gid . "' AND " .
-                "uid='" . $uid . "'") or
+    mysql_query("DELETE FROM usergroup WHERE gid='" .
+                mysql_real_escape_string($gid) . "' AND " .
+                "uid='" . mysql_real_escape_string($uid) . "'") or
       die('Error deleting group associations: ' . mysql_error());
 
     show_status('Removed user ' . $uid . " from group " . $gid);
@@ -315,7 +324,7 @@ if ($admin) {
       mysql_query("SELECT groups.gid, name, uid FROM groups " .
                   "LEFT JOIN (usergroup) ON " .
                   "(usergroup.gid=groups.gid AND " .
-                  " usergroup.uid='" . $uid . "')") or
+                  " usergroup.uid='" . mysql_real_escape_string($uid) . "')") or
       die('Query failed: ' . mysql_error());
 
     while ($row2 = mysql_fetch_array($usergroup, MYSQL_ASSOC)) {
