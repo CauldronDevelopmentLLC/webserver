@@ -8,6 +8,7 @@ import xmlpl.string;
 element webserver;
 element filenames;
 string default_ip;
+string default_ipv6;
 string install;
 
 string<< config;
@@ -17,6 +18,7 @@ element[] getEmails(element e, string domain) {
   if (webserver/@postmaster && e/email) {
     <email name="postmaster" domain=(domain) alias=(webserver/@postmaster)/>
     <email name="abuse" domain=(domain) alias=(webserver/@postmaster)/>
+    <email name="dmarc" domain=(domain) alias=(webserver/@postmaster)/>
   }
 
   foreach (e/email)
@@ -71,9 +73,12 @@ string getAliases(element email) {
 
 string[] doDomainFile(element e, string name) {
   string ip;
-
   if (e/@ip) ip = e/@ip;
   else ip = default_ip;
+
+  string ipv6;
+  if (e/@ipv6) ip = e/@ipv6;
+  else ipv6 = default_ipv6;
 
   "$TTL    1h\n";
   "$ORIGIN " + name + ".\n";
@@ -104,7 +109,19 @@ string[] doDomainFile(element e, string name) {
     "www." + (string)@name + "   IN  A      " + host_ip + "\n";
   }
 
+  :: MX
   name + ". IN MX 1 mail." + name + ". ;MX entry\n";
+
+  :: SPF
+  name + ". IN TXT \"v=spf1 a mx ip6:" + ipv6 + " -all\" ;SPF entry\n";
+
+  :: DKIM
+  "_domainkey IN TXT \"o=~;\" ;DKIM policy entry\n";
+  "_adsp._domainkey IN TXT \"dkim=all\" ;DKIM ADSP entry\n";
+
+  :: DMARC
+  "_dmarc IN TXT \"v=DMARC1; p=quarantine; rua=mailto:dmarc@" + name +
+    "; ruf=mailto:dmarc@" + name +"\" ;DMARC entry\n";
 }
 
 
@@ -733,6 +750,7 @@ string[] doOpenDKIM(element webserver) {
     "127.0.0.1\n" +
     "localhost\n" +
     value(webserver/@ip) + "\n";
+    value(webserver/@ipv6) + "\n";
 
   foreach (webserver/domain) {
     if (@mail == "false") continue;
@@ -754,7 +772,8 @@ string[] doOpenDKIM(element webserver) {
       :: Add domain key TXT entry to domain file
       string domainFile = directory + "/named.conf";
       "if [ -e \"" + domainFile + "\" ]; then\n";
-      "  if ! grep _domainkey \"" + domainFile + "\" >/dev/null; then\n";
+      "  if ! grep ^default._domainkey \"" + domainFile +
+        "\" >/dev/null; then\n";
       "    cat \"" + keysDir + "/default.txt\" >> \"" + domainFile + "\"\n";
       "  fi\n";
       "fi\n";
@@ -790,6 +809,7 @@ string[] main(document in, string[] args) {
   filenames = webserver/filenames;
   element emails = getEmails(webserver);
   default_ip = webserver/@ip;
+  default_ipv6 = webserver/@ipv6;
   install = webserver/@install;
 
   :: Move to prefix directory
