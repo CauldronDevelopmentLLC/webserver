@@ -188,7 +188,9 @@ string[] doWebBaseConfig(element domain, string name, string root) {
   "  DocumentRoot " + root + "\n";
 
   "  <Directory " + root + ">\n";
-  "    AllowOverride FileInfo Options\n";
+  if (domain/@allow_override)
+    "    AllowOverride " + value(domain/@allow_override) + "\n";
+  else "    AllowOverride FileInfo Options\n";
   "  </Directory>\n";
 
   string robots;
@@ -456,11 +458,20 @@ string[] doWeb(element domain, string name) {
       "  </Directory>\n";        
     }
 
-    foreach (domain/location[@auth != "" && @public != "true"]) {
+    foreach (domain/location) {
       "  <Location " + value(@path) + ">\n";
-      "    RewriteEngine On\n";
-      "    RewriteCond %{HTTPS} off\n";
-      "    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}\n";
+
+      if (@auth != "" && @public != "true") {
+        "    RewriteEngine On\n";
+        "    RewriteCond %{HTTPS} off\n";
+        "    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}\n";
+      }
+
+      if (@proxy != "") {
+        "    ProxyPass " + value(@proxy) + "\n";
+        "    ProxyPassReverse " + value(@proxy) + "\n";
+      }
+
       "  </Location>\n";
     }
     "</VirtualHost>\n";
